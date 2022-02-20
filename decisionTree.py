@@ -1,6 +1,8 @@
-from numpy import isin
 import pandas as pd
-
+"""
+to-do: implement depth control, maybe implement some impurity threshhold parameter
+to prevent overfitting
+"""
 
 class Node:
     def __init__(self, feature, boundary, left, right):
@@ -15,22 +17,38 @@ class Leaf:
         self.vote = max(set(data_labels), key = data_labels.count)  # get mode of list
 
 
-def decisionTreeAccuracy(data, labels, decision_tree):
-    accuracy = 0
-    for idx in range(len(data[0])):
-        if decisionTreeTest([i[idx] for i in data], decision_tree) == labels[idx]:
-            accuracy += 1
-    return accuracy/len(data[0])
-
-
-def decisionTreeTest(data_point, decision_tree):
-    if isinstance(decision_tree, Leaf):  # base case: we have traversed the tree
-        return decision_tree.vote
-    else:
-        if data_point[decision_tree.feature] < decision_tree.boundary:
-            return decisionTreeTest(data_point, decision_tree.left)
+class DecisionTree:
+    def __init__(self, max_depth=5):
+        self.max_depth = max_depth   # need to implement, for controlling depth
+    
+    def makeTree(self, train_data, train_labels):
+        self.tree = decisionTreeTrain(train_data, train_labels)
+    
+    def classifyInstance(self, data_point, tree):
+        """
+        get the decision tree's classification of a data point
+        @data_point: data point to classify
+        """
+        if isinstance(tree, Leaf):  # base case: we have traversed the tree
+            return tree.vote
         else:
-            return decisionTreeTest(data_point, decision_tree.right)
+            if data_point[tree.feature] < tree.boundary:
+                return self.classifyInstance(data_point, tree.left)
+            else:
+                return self.classifyInstance(data_point, tree.right)
+    
+    def getAccuracy(self, test_data, test_labels):
+        """
+        get the accuracy of the decision tree, as a percentage of correctly
+        classified data
+        @test_data: testing data points
+        @test_labels: labels of testing data points
+        """
+        accuracy = 0
+        for idx in range(len(test_data[0])):
+            if self.classifyInstance([i[idx] for i in test_data], self.tree) == test_labels[idx]:
+                accuracy += 1
+        return accuracy/len(test_data[0])
 
 
 
@@ -179,5 +197,7 @@ if __name__ == "__main__":
     data = columns[:-1]
     labels = columns[-1]
     idx = 100
-    myTree = decisionTreeTrain([i[:idx] for i in data], labels[:idx])
-    print(decisionTreeAccuracy([i[idx:] for i in data], labels[idx:], myTree))
+    myTree = DecisionTree()
+    myTree.makeTree([i[:idx] for i in data], labels[:idx])
+    # print(myTree.classifyInstance([i[idx] for i in data], myTree.tree))
+    print(myTree.getAccuracy([i[idx:] for i in data], labels[idx:]))
