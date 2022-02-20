@@ -1,11 +1,55 @@
+from numpy import isin
 import pandas as pd
 
 
-class BinaryTreeNode:
-    def __init__(self, impurity):
-        self.impurity = impurity
-        self.left = None
-        self.right = None
+class Node:
+    def __init__(self, feature, boundary, left, right):
+        self.feature = feature
+        self.boundary = boundary
+        self.left = left
+        self.right = right
+
+
+class Leaf:
+    def __init__(self, data_labels):
+        self.vote = max(set(data_labels), key = data_labels.count)  # get mode of list
+
+
+def decisionTreeAccuracy(data, labels, decision_tree):
+    accuracy = 0
+    for idx in range(len(data[0])):
+        if decisionTreeTest([i[idx] for i in data], decision_tree) == labels[idx]:
+            accuracy += 1
+    return accuracy/len(data[0])
+
+
+def decisionTreeTest(data_point, decision_tree):
+    if isinstance(decision_tree, Leaf):  # base case: we have traversed the tree
+        return decision_tree.vote
+    else:
+        if data_point[decision_tree.feature] < decision_tree.boundary:
+            return decisionTreeTest(data_point, decision_tree.left)
+        else:
+            return decisionTreeTest(data_point, decision_tree.right)
+
+
+
+def decisionTreeTrain(data, data_labels, parent_impurity=1):
+    """ 
+    train a decision tree on inputted data
+    @data: 2D array of data to train on
+    @data_labels: list labels of data
+    @parent_impurity: impurity of the parent node
+    """
+    feature, boundary, branch_impurity = branchTree(data, data_labels)
+    if branch_impurity > parent_impurity:
+        return Leaf(data_labels)        # base case: no need to keep splitting
+    else:
+        data, data_labels = sortDataByFeature(data, data_labels, feature)
+        split_idx = splitDataAtBoundary(data[feature], boundary)
+        left = decisionTreeTrain([i[:split_idx] for i in data], data_labels[:split_idx], branch_impurity)
+        right = decisionTreeTrain([i[split_idx:] for i in data], data_labels[split_idx:], branch_impurity)
+        return Node(feature, boundary, left, right)
 
 
 
@@ -26,7 +70,7 @@ def branchTree(data, data_labels):
 def getBestBoundaryForFeature(feature_data, data_labels):
     """
     assuming feature data is either ranked or continuous,
-    finds the best decision boundary
+    finds the decision boundary with the lowest impurity
     @feature_data: list of values for one feature
     @data_labels: labels of each data point in feature_data
     """
@@ -37,8 +81,11 @@ def getBestBoundaryForFeature(feature_data, data_labels):
         if feature_data[i - 1] < feature_data[i]:
             boundaries.append((feature_data[i - 1] + feature_data[i]) / 2)
             impurities.append(giniImpurity(data_labels, i))
-    impurities, boundaries = sortData(impurities, boundaries)
-    return impurities[0], boundaries[0]
+    if impurities:
+        impurities, boundaries = sortData(impurities, boundaries)
+        return impurities[0], boundaries[0]
+    else:  # case where all the data points have the same value
+        return 1.0, feature_data[0]
 
 
 def giniImpurity(data_labels, decision_boundary_index):
@@ -70,6 +117,8 @@ def giniImpurityofNode(data_labels):
 def sortData(data, data_labels):
     """
     sort data in ascending order
+    @data: list of data to sort
+    @data_labels: list labels of data
     """
     sorted_data =  sorted(zip(data, data_labels))
     sorted_data_points = [data_point for data_point, label in sorted_data]
@@ -77,17 +126,43 @@ def sortData(data, data_labels):
     return sorted_data_points, sorted_data_labels
 
 
-# def getSubset(data, labels, target_label):
-#     """
-#     get subset of data that corresponds to a class
-#     @data: all data
-#     @labels: labels for data
-#     @target_label: class we want to filter for"""
-#     subset = []    # might have to edit this to drop NULL values
-#     for idx, data_point in enumerate(data):
-#         if labels[idx] == target_label:
-#             subset.append(data_point)
-#     return subset
+def splitDataAtBoundary(feature_data, boundary):
+    """
+    return index of boundary for one feature
+    @feature_data: array of data for one feature
+    @boundary: value of boundary for that feature
+    """
+    for idx, val in enumerate(feature_data):
+        if val > boundary:
+            return idx
+
+
+def sortData(data, data_labels):
+    """
+    sort data in ascending order
+    @data: list of data to sort
+    @data_labels: list labels of data
+    """
+    sorted_data =  sorted(zip(data, data_labels))
+    sorted_data_points = [data_point for data_point, label in sorted_data]
+    sorted_data_labels = [label for data_point, label in sorted_data]
+    return sorted_data_points, sorted_data_labels
+
+
+def sortDataByFeature(data, labels, feature):
+    """
+    sort all data and labels based on one feature column
+    https://stackoverflow.com/questions/2173797/how-to-sort-2d-array-by-row-in-python
+    @data: 2D array of data
+    @labels: labels of data
+    @feature: index of feature in data
+    """
+    data_transpose = sorted(zip(*data, labels), key=lambda x: x[feature])
+    data_and_labels = zip(*data_transpose)
+    data_and_labels = list(map(list, data_and_labels))  # convert back from list of tuples to list of lists
+    data = data_and_labels[:-1]
+    labels = data_and_labels[-1]
+    return data, labels
 
 
 if __name__ == "__main__":
@@ -103,4 +178,6 @@ if __name__ == "__main__":
     columns = df.transpose().values.tolist()
     data = columns[:-1]
     labels = columns[-1]
-    print(branchTree(data, labels))
+    idx = 100
+    myTree = decisionTreeTrain([i[:idx] for i in data], labels[:idx])
+    print(decisionTreeAccuracy([i[idx:] for i in data], labels[idx:], myTree))
