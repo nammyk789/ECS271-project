@@ -196,8 +196,9 @@ if __name__ == "__main__":
     columns = df.transpose().values.tolist()
     data = columns[:-1]
     labels = columns[-1]
-    idx = 100
+    idx = 1000
     myTree = DecisionTree()
     myTree.makeTree([i[:idx] for i in data], labels[:idx])
     # print(myTree.classifyInstance([i[idx] for i in data], myTree.tree))
-    print(myTree.getAccuracy([i[idx:] for i in data], labels[idx:]))
+    print(myTree.getAccuracy([i[:idx] for i in data], labels[:idx]))
+    print(myTree.getAccuracy([i[idx:2*idx] for i in data], labels[idx:2*idx]))
