@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 """
 to-do: implement depth control, maybe implement some impurity threshhold parameter
 to prevent overfitting
@@ -17,12 +18,13 @@ class Leaf:
         self.vote = max(set(data_labels), key = data_labels.count)  # get mode of list
 
 
-class DecisionTree:
-    def __init__(self, max_depth=5):
-        self.max_depth = max_depth   # need to implement, for controlling depth
+class RandomDecisionTree:
+    def __init__(self, num_random_features, max_depth=5):
+        self.num_random_features= num_random_features
+        self.max_depth = max_depth   # currently useless, could use later to limit depth
     
     def makeTree(self, train_data, train_labels):
-        self.tree = decisionTreeTrain(train_data, train_labels)
+        self.tree = decisionTreeTrain(train_data, train_labels, self.num_random_features)
     
     def classifyInstance(self, data_point, tree):
         """
@@ -52,35 +54,42 @@ class DecisionTree:
 
 
 
-def decisionTreeTrain(data, data_labels, parent_impurity=1):
+def decisionTreeTrain(data, data_labels, num_features, parent_impurity=1):
     """ 
     train a decision tree on inputted data
     @data: 2D array of data to train on
     @data_labels: list labels of data
     @parent_impurity: impurity of the parent node
     """
-    feature, boundary, branch_impurity = branchTree(data, data_labels)
+    feature, boundary, branch_impurity = branchTree(data, data_labels, num_features)
     if branch_impurity > parent_impurity:
         return Leaf(data_labels)        # base case: no need to keep splitting
     else:
         data, data_labels = sortDataByFeature(data, data_labels, feature)
         split_idx = splitDataAtBoundary(data[feature], boundary)
-        left = decisionTreeTrain([i[:split_idx] for i in data], data_labels[:split_idx], branch_impurity)
-        right = decisionTreeTrain([i[split_idx:] for i in data], data_labels[split_idx:], branch_impurity)
+        left = decisionTreeTrain([i[:split_idx] for i in data], data_labels[:split_idx], \
+                                    num_features, branch_impurity)
+        right = decisionTreeTrain([i[split_idx:] for i in data], data_labels[split_idx:], \
+                                    num_features, branch_impurity)
         return Node(feature, boundary, left, right)
 
 
 
-def branchTree(data, data_labels):
+def branchTree(data, data_labels, num_features):
     """
-    get the best branch criteria for a set of features
+    get the best branch criteria for a random subset of features
     @data: 2D array where each row is one feature
     @data_labels: list of labels corresponding to each column in data
+    @num_features: number of features to consider
     """
+    rand_features = np.random.randint(low=0, high=len(data), size=num_features)
+    data_series = pd.Series(data)
+    rand_subset = list(data_series[rand_features])
+
     potential_branches = []
-    for idx, feature in enumerate(data):
+    for idx, feature in enumerate(rand_subset):
         branch_impurity, boundary = getBestBoundaryForFeature(feature, data_labels)
-        potential_branches.append((idx, boundary, branch_impurity))
+        potential_branches.append((rand_features[idx], boundary, branch_impurity))
     potential_branches.sort(key=lambda x:x[2])
     return potential_branches[0][0], potential_branches[0][1], potential_branches[0][2]
 
@@ -193,12 +202,14 @@ if __name__ == "__main__":
     # should be (0.27, 205)
     # print("best boundary:", getBestBoundaryForFeature(test_column, test_labels))
     df = pd.read_csv("fetal_health.csv")
+    np.random.seed(1)
+    df.iloc[np.random.permutation(len(df))]
     columns = df.transpose().values.tolist()
     data = columns[:-1]
     labels = columns[-1]
     idx = 1000
-    myTree = DecisionTree()
+    myTree = RandomDecisionTree(5)
     myTree.makeTree([i[:idx] for i in data], labels[:idx])
-    # print(myTree.classifyInstance([i[idx] for i in data], myTree.tree))
+    print(myTree.classifyInstance([i[idx] for i in data], myTree.tree), labels[idx])
     print(myTree.getAccuracy([i[:idx] for i in data], labels[:idx]))
     print(myTree.getAccuracy([i[idx:2*idx] for i in data], labels[idx:2*idx]))
