@@ -1,4 +1,4 @@
-from random import Random
+import time
 from decisionTree import *
 
 """
@@ -25,7 +25,8 @@ class RandomForest(RandomDecisionTree):
         """
         votes = []
         for tree in self.trees:
-            votes.append(tree.classifyInstance(data_point))
+            votes.append(tree.classifyInstance(data_point, tree.tree))
+        print(votes)  # votes are not storing real votes
         return max(set(votes), key = votes.count)
     
     def testOutOfBag(self, data, labels):
@@ -44,22 +45,23 @@ class RandomForest(RandomDecisionTree):
         """
         generate a random forest
         @data: 2D matrix of unlabeled data points
-        @labels: list of labels for data        """
+        @labels: list of labels for data
+        """
+        start_time = time.time()
         self.trees = []
-        self.out_of_bag_idx = set() # keep track of out of bag data
+        out_of_bag_idx = [] # keep track of out of bag data
         data_and_labels = data
         data_and_labels.append(labels)
-        for i in range(self.num_trees):
+        for _ in range(self.num_trees):
             bootstrapped_data, out_of_bag = generateBootstrappedData(data_and_labels)
             data = bootstrapped_data[:-1]
             labels = bootstrapped_data[-1]
             tree = RandomDecisionTree(self.num_random_features)
-            tree = tree.makeTree(data, labels)
-            self.trees.append[tree]
-            self.out_of_bag_idx.add(*out_of_bag)
-
-
-
+            tree.makeTree(data, labels)
+            self.trees.append(tree)  # currently tree is None
+            out_of_bag_idx.extend(out_of_bag)
+        self.out_of_bag_idx = set(out_of_bag_idx)
+        print("Finished training! Time elapsed:", time.time() - start_time)
     
 
 def generateBootstrappedData(data):
@@ -84,6 +86,7 @@ if __name__ == "__main__":
     columns = df.transpose().values.tolist()
     data = columns[:-1]
     labels = columns[-1]
-    forest = RandomForest(50, 3)
+    forest = RandomForest(2, 3)
     forest.makeForest(data, labels)
-    # print(forest.train)
+    # print(forest.trees)
+    print(forest.classifyInstance(data[1]), labels[1])
