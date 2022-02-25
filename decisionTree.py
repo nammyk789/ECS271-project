@@ -19,7 +19,7 @@ class Leaf:
 
 
 class RandomDecisionTree:
-    def __init__(self, num_random_features, max_depth=5):
+    def __init__(self, num_random_features, max_depth=None):
         self.num_random_features= num_random_features
         self.max_depth = max_depth   # currently useless, could use later to limit depth
     
