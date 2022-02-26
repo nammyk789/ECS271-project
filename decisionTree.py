@@ -1,3 +1,4 @@
+from ast import parse
 import pandas as pd
 import numpy as np
 """
@@ -47,8 +48,8 @@ class RandomDecisionTree:
         @test_labels: labels of testing data points
         """
         accuracy = 0
-        for idx in range(len(test_data)):
-            if self.classifyInstance(test_data[idx], self.tree) == test_labels[idx]:
+        for idx, data_point in enumerate(test_data):
+            if self.classifyInstance(data_point, self.tree) == test_labels[idx]:
                 accuracy += 1
         return accuracy/len(test_data)
 
@@ -191,6 +192,17 @@ def sortDataByFeature(data, labels, feature):
     labels = data_and_labels[-1]
     return data, labels
 
+def processDataFrame(data_frame):
+    """ get feature data and data entries
+    with respective labels
+    @data_frame: pandas dataframe"""
+    columns = data_frame.transpose().values.tolist()
+    features = columns[:-1]  
+    feature_labels = columns[-1]
+    data = data_frame.values.tolist()
+    data_labels = [i[-1] for i in data]
+    data = [i[:-1] for i in data]
+    return features, feature_labels, data, data_labels
 
 if __name__ == "__main__":
     # test_column = [155, 180, 190, 220, 225]
@@ -204,12 +216,7 @@ if __name__ == "__main__":
     df = pd.read_csv("fetal_health.csv")
     np.random.seed(1)
     df.iloc[np.random.permutation(len(df))]
-    columns = df.transpose().values.tolist()
-    features = columns[:-1]  
-    feature_labels = columns[-1]
-    data = df.values.tolist()
-    data_labels = [i[-1] for i in data]
-    data = [i[:-1] for i in data]
+    features, feature_labels, data, data_labels = processDataFrame(df)
     idx = 1000
     myTree = RandomDecisionTree(5)
     myTree.makeTree([i[:idx] for i in features], feature_labels[:idx])
