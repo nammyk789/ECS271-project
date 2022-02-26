@@ -47,17 +47,17 @@ class RandomDecisionTree:
         @test_labels: labels of testing data points
         """
         accuracy = 0
-        for idx in range(len(test_data[0])):
-            if self.classifyInstance([i[idx] for i in test_data], self.tree) == test_labels[idx]:
+        for idx in range(len(test_data)):
+            if self.classifyInstance(test_data[idx], self.tree) == test_labels[idx]:
                 accuracy += 1
-        return accuracy/len(test_data[0])
+        return accuracy/len(test_data)
 
 
 
 def decisionTreeTrain(data, data_labels, num_features, parent_impurity=1):
     """ 
     train a decision tree on inputted data
-    @data: 2D array of data to train on
+    @data: 2D array of data to train on where each array is a feature
     @data_labels: list labels of data
     @parent_impurity: impurity of the parent node
     """
@@ -205,11 +205,14 @@ if __name__ == "__main__":
     np.random.seed(1)
     df.iloc[np.random.permutation(len(df))]
     columns = df.transpose().values.tolist()
-    data = columns[:-1]
-    labels = columns[-1]
+    features = columns[:-1]  
+    feature_labels = columns[-1]
+    data = df.values.tolist()
+    data_labels = [i[-1] for i in data]
+    data = [i[:-1] for i in data]
     idx = 1000
     myTree = RandomDecisionTree(5)
-    myTree.makeTree([i[:idx] for i in data], labels[:idx])
-    print(myTree.classifyInstance([i[idx] for i in data], myTree.tree), labels[idx])
-    print(myTree.getAccuracy([i[:idx] for i in data], labels[:idx]))
-    print(myTree.getAccuracy([i[idx:2*idx] for i in data], labels[idx:2*idx]))
+    myTree.makeTree([i[:idx] for i in features], feature_labels[:idx])
+    print(myTree.classifyInstance(data[idx], myTree.tree), data_labels[idx])
+    print("training accuracy:", myTree.getAccuracy(data[:idx], data_labels[:idx]))
+    print("testing accuracy:", myTree.getAccuracy(data[idx:2*idx], data_labels[idx:2*idx]))
