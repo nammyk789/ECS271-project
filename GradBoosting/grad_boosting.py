@@ -1,7 +1,5 @@
 import typing
 import numpy as np
-import numpy as np
-import numpy as np
 import matplotlib.pyplot as plt
 
 from sklearn.tree import DecisionTreeRegressor
@@ -71,7 +69,12 @@ class Grad_Boosting:
 
         print(model)
         tree.plot_tree(model)
-        plt.show()
+        #plt.show()
+
+        self.apply_residual_transformation(model, X_train, y_pred)
+
+        #get values manually for now. then, see link for the tree traversal
+        #to get leaves
 
 
         """# performs gradient boosting with a tqdm progress bar
@@ -104,6 +107,34 @@ class Grad_Boosting:
         return y_hat_train, y_hat_train_test"""
 
 
+    def apply_residual_transformation(self, model, X_train, y_pred):
+
+
+        print(len(model.tree_.value))
+        print("value: " + str(model.tree_.value[3]))
+        #print(model.tree_.value)
+        leaf_indices = model.apply(X_train)
+        print(leaf_indices)
+
+        #below gets the unique leaves we have
+        unique_leaves = np.unique(leaf_indices)
+        print(unique_leaves)
+
+        first_leaf = unique_leaves[0]
+
+        #get numerator and denom for first leaf only. get sum of all residuals in leaf
+        first_leaf_numerator = sum(model.tree_.value[first_leaf])
+        print("first leaf numerator: " + str(first_leaf_numerator))
+
+        #since we're building the first tree, prev probability is just the probability from the
+        #logistic function
+        first_leaf_denominator = y_pred * (1 - y_pred)
+
+        output = first_leaf_numerator/first_leaf_denominator
+        print("output of first leaf: " + str(output))
+
+        #plt.show()
+
 
 def create_split_and_learner(x, y):
 
@@ -115,8 +146,8 @@ def create_split_and_learner(x, y):
 
     #decisiontreeregressor weak learner
     #change squared to 0-1 error
-    #change number of leaves?
-    tree_model = DecisionTreeRegressor(criterion='squared_error', max_depth=3, max_leaf_nodes=3)
+    #change number of leaves to between 8 and 32 later
+    tree_model = DecisionTreeRegressor(criterion='absolute_error', max_depth=3, max_leaf_nodes=3)
     return x_train, x_test, y_train, y_test, tree_model
 
 
