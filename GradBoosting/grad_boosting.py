@@ -9,6 +9,7 @@ from sklearn.model_selection import train_test_split
 
 from sklearn.linear_model import RidgeCV
 from sklearn.datasets import make_regression
+from sklearn import tree
 from tqdm import tqdm_notebook as tqdm
 import numpy as np
 import pandas as pd
@@ -47,14 +48,31 @@ class Grad_Boosting:
 
         print("logistic regression probability: " + str(log_regression))
 
+        y_pred = log_regression
         #now we need to calculate residuals (pseudo residuals) for each class - y_train - in our data
-        print(y_train[0:10])
+        #subtract y_train - y_pred for each element in the training set
+        #do this for all nums in column and save
+        pseudo_resid = [0]*len(y_train)
+        count = 0
+
+        for val in y_train:
+            pseudo_resid[count] = val - y_pred
+            count += 1
+
+        #print()
+        #print("the pseudo resids: " + str(pseudo_resid))
+        #saved all the pseudo resids
 
 
-        """# calculate the residuals from the training data using the first guess
-        pseudo_resids = y_train - y_hat_train
-        print("pseudo resids: " + str(pseudo_resids))
-        print()"""
+        #fit the decisiontree regressor to the x_train data and pseudo residuals
+        # we have 21 features in this data
+        print(X_train.shape)
+        model = model.fit(X_train, pseudo_resid)
+
+        print(model)
+        tree.plot_tree(model)
+        plt.show()
+
 
         """# performs gradient boosting with a tqdm progress bar
         if verbose:
@@ -92,20 +110,13 @@ def create_split_and_learner(x, y):
     n_round = 0
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.15)
 
-    #print(x_train.shape)
-    #print(x_test.shape)
-    #print(x_train[0:10])
-    #print()
-    #print(y_train.shape)
-    #print(y_test.shape)
-
     #need to remove header
 
 
     #decisiontreeregressor weak learner
     #change squared to 0-1 error
     #change number of leaves?
-    tree_model = DecisionTreeRegressor(criterion='squared_error', max_depth=3)
+    tree_model = DecisionTreeRegressor(criterion='squared_error', max_depth=3, max_leaf_nodes=3)
     return x_train, x_test, y_train, y_test, tree_model
 
 
