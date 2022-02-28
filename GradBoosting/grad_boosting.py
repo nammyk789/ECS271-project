@@ -13,6 +13,7 @@ from tqdm import tqdm_notebook as tqdm
 import numpy as np
 import pandas as pd
 from statistics import mean
+import math
 
 
 
@@ -23,7 +24,7 @@ class Grad_Boosting:
         self.zero_count = zero_count
 
 
-    def GradBoostClassifier(model,
+    def GradBoostClassifier(self, model,
                   X_test: np.array,                  # testing independent variables
                   X_train: np.array,                 # training independent variables
                   y_train: np.array,                 # training dependent variable
@@ -38,13 +39,19 @@ class Grad_Boosting:
         #instead of getting the mean of the y training data, instead we calc log(odds) of normal fetus and then
         #pass into logistic function
 
-        #output_mean = np.repeat(np.mean(y_train), len(y_train))
+        log_odds = math.log(self.one_count/self.zero_count)
+        print("log odds: " + str(log_odds))
+
+        #now, plug into logistic regression equation
+        log_regression = math.exp(log_odds)/(1 + math.exp(log_odds))
+
+        print("logistic regression probability: " + str(log_regression))
+
+        #now we need to calculate residuals (pseudo residuals) for each class - y_train - in our data
+        print(y_train[0:10])
 
 
-        # initialize the out of sample prediction with the mean of the training target variable
-        """y_hat_train_test = np.repeat(np.mean(y_train), len(X_test))
-
-        # calculate the residuals from the training data using the first guess
+        """# calculate the residuals from the training data using the first guess
         pseudo_resids = y_train - y_hat_train
         print("pseudo resids: " + str(pseudo_resids))
         print()"""
@@ -81,17 +88,16 @@ class Grad_Boosting:
 
 
 def create_split_and_learner(x, y):
+
     n_round = 0
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.15)
 
-    print(x_train.shape)
-    print(x_test.shape)
-    print(x_train[0:10])
-    print()
-    print(y_train.shape)
-    print(y_test.shape)
-
-    print(y_train[0:10])
+    #print(x_train.shape)
+    #print(x_test.shape)
+    #print(x_train[0:10])
+    #print()
+    #print(y_train.shape)
+    #print(y_test.shape)
 
     #need to remove header
 
@@ -100,15 +106,13 @@ def create_split_and_learner(x, y):
     #change squared to 0-1 error
     #change number of leaves?
     tree_model = DecisionTreeRegressor(criterion='squared_error', max_depth=3)
-    return x_train, x_test, y_train, tree_model
+    return x_train, x_test, y_train, y_test, tree_model
 
 
 
 def main():
 
     df = pd.read_csv('fetal_health.csv')
-    print(df.shape)
-    print(df['fetal_health'])
     one_count = 0
 
     fetal_health_col = df['fetal_health']
@@ -154,8 +158,7 @@ def main():
     x = df.drop(["fetal_health"], axis = 1)
     y = fetal_health_col
 
-    x_train, y_train, x_test, tree_model = create_split_and_learner(x, y)
-
+    x_train, x_test, y_train, y_test, tree_model = create_split_and_learner(x, y)
     boost_class = Grad_Boosting(one_count, zero_count)
     boost_class.GradBoostClassifier(tree_model, x_test, x_train, y_train, learning_rate=0.1)
 
@@ -203,4 +206,3 @@ plt.title('Training MSE vs. Boosting Rounds for Tree Model', fontsize=20)
 plt.xlabel('Number of Boosting Rounds', fontsize=15)
 plt.ylabel('Training Mean Squared Error', fontsize=15)
 plt.show();"""
-
