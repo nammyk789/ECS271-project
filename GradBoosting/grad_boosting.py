@@ -21,6 +21,7 @@ class Grad_Boosting:
     def __init__(self, one_count, zero_count):
         self.one_count = one_count
         self.zero_count = zero_count
+        self.first_tree = True
 
 
     def GradBoostClassifier(self, model,
@@ -37,7 +38,6 @@ class Grad_Boosting:
 
         #instead of getting the mean of the y training data, instead we calc log(odds) of normal fetus and then
         #pass into logistic function
-
         log_odds = math.log(self.one_count/self.zero_count)
         print("log odds: " + str(log_odds))
 
@@ -57,56 +57,89 @@ class Grad_Boosting:
             pseudo_resid[count] = val - y_pred
             count += 1
 
+        #print(y_train[0:10])
         #print()
-        #print("the pseudo resids: " + str(pseudo_resid))
+        #print(X_train[0:10])
+        print("the pseudo resids: " + str(pseudo_resid[0:10]))
         #saved all the pseudo resids
 
 
         #fit the decisiontree regressor to the x_train data and pseudo residuals
         # we have 21 features in this data
-        print(X_train.shape)
         model = model.fit(X_train, pseudo_resid)
-
-        print(model)
         tree.plot_tree(model)
-        #plt.show()
-
-        self.apply_residual_transformation(model, X_train, y_pred)
-
-        #get values manually for now. then, see link for the tree traversal
-        #to get leaves
 
 
-        """# performs gradient boosting with a tqdm progress bar
-        if verbose:
-            from tqdm import tqdm
-            # iterates through the boosting round
-            for _ in tqdm(range(0, boosting_rounds)):
-                # fit the model to the pseudo residuals
-                model = model.fit(X_train, pseudo_resids)
-                # increment the predicted training y with the pseudo residual * learning rate
-                y_hat_train += learning_rate * model.predict(X_train)
-                # increment the predicted test y as well
-                y_hat_train_test += learning_rate * model.predict(X_test)
-                # calculate the pseudo resids for next round
-                pseudo_resids = y_train - y_hat_train
-        # performs gradient boosting without a progress bar
-        else:
-            # iterates through the boosting round
-            for _ in range(0, boosting_rounds):
-                # fit the model to the pseudo residuals
-                model = model.fit(X_train, pseudo_resids)
-                # increment the predicted training y with the pseudo residual * learning rate
-                y_hat_train += learning_rate * model.predict(X_train)
-                # increment the predicted test y as well
-                y_hat_train_test += learning_rate * model.predict(X_test)
-                # calculate the pseudo resids for next round
-                pseudo_resids = y_train - y_hat_train
+        leaf_output_list = self.apply_residual_transformation(model, X_train, y_pred)
 
-        # return a tuple of the predicted training y and the predicted test y
-        return y_hat_train, y_hat_train_test"""
+        #predict the new probability
+        pred_list = []
+        pred_list = self.predict_prob(model, X_train, y_pred, leaf_output_list, learning_rate)
+
+        #get new pseudo residuals
+        #y_train - pred_list
+        new_pseudo_resids = []
+        new_pseudo_resids = y_train - pred_list
+        new_pseudo_resids = new_pseudo_resids.to_numpy()
+        print("the new pseudo residuals: " + str(new_pseudo_resids[0:10]))
+
+        #now need to fit them to a new tree and repeat. put new residual calculation in a loop with
+        #the weak learner fitting. keep looping until end of boosting rounds
+        
 
 
+
+        plt.show()
+        #use tree traversal to get leaves - maybe not necessary
+
+
+
+    def predict_prob(self, model, X_train, y_pred, leaf_output_list, learning_rate):
+
+        #need to loop through training data, do model.apply to get leaf
+        #return the output value from the tuple list stored
+        pred_list = []
+        log_odds_pred = 0
+        actual_prob = 0
+        count = 0
+
+        #the i value is correct
+        print("shape of x train: " + str(X_train.shape))
+        print()
+        for i, row in X_train.iterrows():
+            if count == 0:
+                print(i)
+                print(row[8])
+                print(row[17])
+                count += 1
+
+            reshaped_row = row.values.reshape(1, -1)
+            #note, may need to change this
+            curr_train_leaf = model.apply(reshaped_row)
+            #print("the current training leaf: " + str(curr_train_leaf))
+            #print()
+
+            #use the current leaf we've gone to in order to determine the output for log(odds)
+            for item in leaf_output_list:
+                if item[0] == curr_train_leaf[0]:
+                    output = item[1]
+                    #print("output is: " + str(item[1]))
+                    log_odds_pred = y_pred + (learning_rate*output)
+                    #print("the log odds new prediction is: " + str(log_odds_pred))
+
+            #convert log odds back into probability
+            actual_prob = (math.exp(log_odds_pred)/(1 + math.exp(log_odds_pred)))
+            #print("the probability: " + str(actual_prob))
+            pred_list.append(actual_prob)
+
+        #print("the entire pred list: " + str(pred_list))
+        return pred_list
+
+
+
+
+    #note: can use model.apply to see where leaf maps to
+    #apply the transformation of the residual since we're doing a classification
     def apply_residual_transformation(self, model, X_train, y_pred):
 
 
@@ -114,26 +147,34 @@ class Grad_Boosting:
         print("value: " + str(model.tree_.value[3]))
         #print(model.tree_.value)
         leaf_indices = model.apply(X_train)
-        print(leaf_indices)
 
         #below gets the unique leaves we have
         unique_leaves = np.unique(leaf_indices)
-        print(unique_leaves)
+        #print(unique_leaves)
+        curr_numerator = 0
+        curr_denominator = 0
+        leaf_output_list = []
 
-        first_leaf = unique_leaves[0]
+        for i in range(0, len(unique_leaves)):
+            #print(unique_leaves[i])
+            curr_leaf_index = unique_leaves[i]
+            curr_numerator = sum(model.tree_.value[curr_leaf_index])
+            #print("current numerator: " + str(curr_numerator))
 
-        #get numerator and denom for first leaf only. get sum of all residuals in leaf
-        first_leaf_numerator = sum(model.tree_.value[first_leaf])
-        print("first leaf numerator: " + str(first_leaf_numerator))
+            if self.first_tree:
+                curr_denominator = y_pred * (1 - y_pred)
 
-        #since we're building the first tree, prev probability is just the probability from the
-        #logistic function
-        first_leaf_denominator = y_pred * (1 - y_pred)
+            output = curr_numerator/curr_denominator
+            #print("output of current leaf: " + str(output))
 
-        output = first_leaf_numerator/first_leaf_denominator
-        print("output of first leaf: " + str(output))
+            leaf_output_list.append((curr_leaf_index, output[0]))
 
-        #plt.show()
+        print("the leaf output list: " + str(leaf_output_list))
+        return leaf_output_list
+
+
+
+
 
 
 def create_split_and_learner(x, y):
@@ -216,6 +257,37 @@ main()
 # appending it to a list.
 ###
 
+
+
+
+"""# performs gradient boosting with a tqdm progress bar
+        if verbose:
+            from tqdm import tqdm
+            # iterates through the boosting round
+            for _ in tqdm(range(0, boosting_rounds)):
+                # fit the model to the pseudo residuals
+                model = model.fit(X_train, pseudo_resids)
+                # increment the predicted training y with the pseudo residual * learning rate
+                y_hat_train += learning_rate * model.predict(X_train)
+                # increment the predicted test y as well
+                y_hat_train_test += learning_rate * model.predict(X_test)
+                # calculate the pseudo resids for next round
+                pseudo_resids = y_train - y_hat_train
+        # performs gradient boosting without a progress bar
+        else:
+            # iterates through the boosting round
+            for _ in range(0, boosting_rounds):
+                # fit the model to the pseudo residuals
+                model = model.fit(X_train, pseudo_resids)
+                # increment the predicted training y with the pseudo residual * learning rate
+                y_hat_train += learning_rate * model.predict(X_train)
+                # increment the predicted test y as well
+                y_hat_train_test += learning_rate * model.predict(X_test)
+                # calculate the pseudo resids for next round
+                pseudo_resids = y_train - y_hat_train
+
+        # return a tuple of the predicted training y and the predicted test y
+        return y_hat_train, y_hat_train_test"""
 
 """#tqdm is progress bar
 tree_mse_train = []
