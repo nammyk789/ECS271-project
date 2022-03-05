@@ -25,7 +25,7 @@ class RandomDecisionTree:
         self.max_depth = max_depth   # currently useless, could use later to limit depth
     
     def makeTree(self, train_data, train_labels):
-        self.tree = decisionTreeTrain(train_data, train_labels, self.num_random_features)
+        self.tree = decisionTreeTrain(train_data, train_labels, self.num_random_features, self.max_depth)
     
     def classifyInstance(self, data_point, tree):
         """
@@ -55,7 +55,7 @@ class RandomDecisionTree:
 
 
 
-def decisionTreeTrain(data, data_labels, num_features, parent_impurity=1):
+def decisionTreeTrain(data, data_labels, num_features, max_depth, parent_impurity=1):
     """ 
     train a decision tree on inputted data
     @data: 2D array of data to train on where each array is a feature
@@ -63,15 +63,15 @@ def decisionTreeTrain(data, data_labels, num_features, parent_impurity=1):
     @parent_impurity: impurity of the parent node
     """
     feature, boundary, branch_impurity = branchTree(data, data_labels, num_features)
-    if branch_impurity > parent_impurity:
+    if branch_impurity > parent_impurity or max_depth == 0:
         return Leaf(data_labels)        # base case: no need to keep splitting
     else:
         data, data_labels = sortDataByFeature(data, data_labels, feature)
         split_idx = splitDataAtBoundary(data[feature], boundary)
         left = decisionTreeTrain([i[:split_idx] for i in data], data_labels[:split_idx], \
-                                    num_features, branch_impurity)
+                                    num_features, max_depth - 1, branch_impurity)
         right = decisionTreeTrain([i[split_idx:] for i in data], data_labels[split_idx:], \
-                                    num_features, branch_impurity)
+                                    num_features, max_depth - 1, branch_impurity)
         return Node(feature, boundary, left, right)
 
 

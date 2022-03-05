@@ -15,9 +15,10 @@ of the same size
 the square root of the number of variables
 """
 class RandomForest(RandomDecisionTree):
-    def __init__(self, num_trees, num_random_features):
+    def __init__(self, num_trees, num_random_features, max_depth):
         self.num_trees = num_trees
         self.num_random_features = num_random_features
+        self.max_depth = max_depth
     
     def classifyInstance(self, data_point):
         """
@@ -64,7 +65,7 @@ class RandomForest(RandomDecisionTree):
         for _ in range(self.num_trees):
             bootstrapped_data_frame, out_of_bag = generateBootstrappedData(data_frame)
             features, labels = processDataFrame(bootstrapped_data_frame)[:2]
-            tree = RandomDecisionTree(self.num_random_features) 
+            tree = RandomDecisionTree(self.num_random_features, max_depth=self.max_depth) 
             tree.makeTree(features, labels)
             self.trees.append(tree) 
             out_of_bag_idx.extend(out_of_bag)
@@ -91,7 +92,7 @@ if __name__ == "__main__":
     np.random.seed(1)
     df.iloc[np.random.permutation(len(df))]
     features, feature_labels, data, data_labels = processDataFrame(df)
-    forest = RandomForest(50, 3)
+    forest = RandomForest(50, 3, 100)
     forest.makeForest(df)
     print("classifier:", forest.classifyInstance(data[1]), "real label:", data_labels[1])
     print("out of bag accuracy:", forest.testOutOfBag(data, data_labels))
