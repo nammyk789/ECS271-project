@@ -7,6 +7,8 @@ from sklearn.model_selection import train_test_split
 
 from sklearn.linear_model import RidgeCV
 from sklearn.datasets import make_regression
+from sklearn.ensemble import GradientBoostingClassifier
+
 from sklearn import tree
 from tqdm import tqdm_notebook as tqdm
 import numpy as np
@@ -28,6 +30,7 @@ class Grad_Boosting:
         self.first_pred = 0
         self.new_pseudo_resids = []
         self.i = 0
+        self.loss_list = []
 
     '''
     Takes in a model and performs gradient boosting using that model. This allows for almost any scikit-learn
@@ -39,7 +42,7 @@ class Grad_Boosting:
                   X_train: np.array,                 # training independent variables
                   y_train: np.array,                 # training dependent variable
                   boosting_rounds: int = 100,        # number of boosting rounds
-                  learning_rate: float = 0.001,        # learning rate with default of 0.1
+                  learning_rate: float = 0.1,        # learning rate with default of 0.1
                   ) -> np.array: # if True, shows a tqdm progress bar
 
 
@@ -56,28 +59,28 @@ class Grad_Boosting:
         print("prediction for first boosting round: " + str(self.first_pred))
         #now we need to calculate residuals (pseudo residuals) for each class - y_train - in our data
 
-        pseudo_resid = [0]*len(y_train)
+        self.new_pseudo_resids = [0]*len(y_train)
         count = 0
 
         for val in y_train:
-            pseudo_resid[count] = val - self.first_pred
+            self.new_pseudo_resids[count] = val - self.first_pred
             count += 1
 
-        print("the pseudo resids: " + str(pseudo_resid[0:10]))
         #saved all the pseudo resids
+        print("the new pseudo resids: " + str(self.new_pseudo_resids[0:10]))
 
 
 
         #fit the decisiontree regressor to the x_train data and pseudo residuals
         # we have 21 features in this data
-        model = model.fit(X_train, pseudo_resid)
+        model = model.fit(X_train, self.new_pseudo_resids)
         tree.plot_tree(model)
 
 
         leaf_output_list = self.apply_residual_transformation(model, X_train)
         #predict the new probability
         pred_list = []
-        pred_list = self.predict_prob(model, X_train, y_train, leaf_output_list, learning_rate)
+        """pred_list = self.predict_prob(model, X_train, y_train, leaf_output_list, learning_rate)
 
         #get new pseudo residuals
         #y_train - pred_list
@@ -88,20 +91,16 @@ class Grad_Boosting:
 
         for i in range(0, len(y_train_numpy)):
             self.new_pseudo_resids[i] = y_train_numpy[i] - pred_list[i]
-            """if i < 10:
-                print("x train: " + str(X_train_numpy[i]))
-                print("y train: " + str(y_train_numpy[i]))
-                print("new pred: " + str(pred_list[i]))
-                print("the new pseudo_resid: " + str(self.new_pseudo_resids[i]))
-                print()"""
+
+
+        self.loss_list.append(sum(self.new_pseudo_resids))
 
 
 
 
-        #tree.plot_tree(model)
-        #plt.show()
 
-        loss_list = []
+
+
         curr_acc = []
         total_preds = len(y_train_numpy)
         #for loop through boosting rounds
@@ -110,7 +109,10 @@ class Grad_Boosting:
         #predict the probability of each leaf from the outputs for each training point (predict_prob)
         #update the new pseudo residuals (like above)
         #repeat
-        for j in range(0, 10):
+        for j in range(0,10):
+
+            print()
+            print("boosting round: " + str(2 + j))
             model = model.fit(X_train, self.new_pseudo_resids)
             leaf_output_list = self.apply_residual_transformation(model, X_train)
             pred_list = self.predict_prob(model, X_train, y_train, leaf_output_list, learning_rate)
@@ -121,9 +123,8 @@ class Grad_Boosting:
                     correct_preds += 1
 
                 else:
-                    if pred_list[k] < 0.5 and y_train_numpy == 0:
+                    if pred_list[k] < 0.5 and y_train_numpy[k] == 0:
                         correct_preds += 1
-
 
                 self.new_pseudo_resids[k] = y_train_numpy[k] - pred_list[k]
 
@@ -131,7 +132,7 @@ class Grad_Boosting:
             curr_acc = (correct_preds/total_preds)*100
             print("the current training accuracy for epoch " + str(j) + ": " + str(curr_acc))
             print()
-            loss_list.append(sum(self.new_pseudo_resids))
+            self.loss_list.append(sum(self.new_pseudo_resids))
 
             #calculate accuracy for this round (epoch)
 
@@ -139,14 +140,13 @@ class Grad_Boosting:
             #print()
 
         #plotting the final tree
-        #tree.plot_tree(model)
-        #plt.show()
+        tree.plot_tree(model)
+        plt.show()
+        print("the loss list: " + str(self.loss_list))
+        print()"""
 
-        print("the loss list: " + str(loss_list))
-        print()
 
-
-        return model, pred_list, loss_list
+        return model, pred_list
 
 
 
@@ -163,44 +163,54 @@ class Grad_Boosting:
         for i, row in X_train.iterrows():
             if count == 0:
 
-                #print(row[8])
-                #print(row[17])
-                #print(y_train[i])
-                #print("first sample: " + str(row))
+                print(row[8])
+                print(row[17])
+                print("expected pred for this training point: " + str(y_train[i]))
                 self.i = i
                 count += 1
 
             reshaped_row = row.values.reshape(1, -1)
             #note, may need to change this
             curr_train_leaf = model.apply(reshaped_row)
-            #print("the current training leaf: " + str(curr_train_leaf))
-            #print()
+
+            if self.i == i:
+                print("the current training leaf: " + str(curr_train_leaf))
+                print()
 
             #use the current leaf we've gone to in order to determine the output for log(odds)
             for item in leaf_output_list:
+
                 if item[0] == curr_train_leaf[0]:
                     output = item[1]
-
                     #only use this calc with y pred if self.first_tree = true
                     if self.first_tree:
                         log_odds_pred = self.first_pred + (learning_rate*output)
 
-                        #if i == self.i:
-                            #print("first pred: " + str(self.first_pred))
-                            #print("lr: " + str(learning_rate))
-                            #print("output: " + str(output))
-                            #print()
+                        if i == self.i:
+                            print("first pred: " + str(self.first_pred))
+                            print("lr: " + str(learning_rate))
+                            print("output: " + str(output))
+                            print("log odds pred: " + str(log_odds_pred))
+                            print()
 
                     else:
                         curr_prob = self.new_prob_dict[curr_train_leaf[0]]
                         log_odds_pred = curr_prob + (learning_rate)*output
+
+                        if i == self.i:
+                            print("first pred: " + str(curr_prob))
+                            print("lr: " + str(learning_rate))
+                            print("output: " + str(output))
+                            print("log odds pred: " + str(log_odds_pred))
+                            print()
+
                     #print("the log odds new prediction is: " + str(log_odds_pred))
 
                     #convert log odds back into probability
                     actual_prob = (math.exp(log_odds_pred)/(1 + math.exp(log_odds_pred)))
 
-                    #if i == self.i:
-                        #print("the probability: " + str(actual_prob))
+                    if i == self.i:
+                        print("the new probability for leaf: " + str(curr_train_leaf[0]) + ": " + str(actual_prob))
 
                     #update new prob dict after first round of boosting for this leaf
                     self.new_prob_dict[curr_train_leaf[0]] = actual_prob
@@ -220,39 +230,63 @@ class Grad_Boosting:
     #note: can use model.apply to see where leaf maps to
     #apply the transformation of the residual since we're doing a classification
     def apply_residual_transformation(self, model, X_train):
-
-
-
         #print(model.tree_.value)
         leaf_indices = model.apply(X_train)
-
+        print(len(leaf_indices))
+        print(len(X_train))
         #below gets the unique leaves we have
         unique_leaves = np.unique(leaf_indices)
-        #print(unique_leaves)
-        curr_numerator = 0
-        curr_denominator = 0
+        print(unique_leaves)
+        #curr_numerator = 0
+        #curr_denominator = 0
+        leaf_output_dict = {}
         leaf_output_list = []
 
         for i in range(0, len(unique_leaves)):
-            #print(unique_leaves[i])
-            curr_leaf_index = unique_leaves[i]
-            curr_numerator = sum(model.tree_.value[curr_leaf_index])
-            #print("current numerator: " + str(curr_numerator))
+            if unique_leaves[i] not in leaf_output_dict:
+                leaf = unique_leaves[i]
+                leaf_output_dict[leaf] = []
+
+        print(leaf_output_dict)
+
+        #go through each training example (len(leaf_indices))
+        #if we're creating the first tree, then append pseudo_residual[i] to leaf_index[i] inside the leaf output dict
+        for j in range(0, len(leaf_indices)):
+            if self.first_tree:
+                curr_leaf = leaf_indices[j]
+                curr_pseudo_resid = self.new_pseudo_resids[j]
+
+                leaf_output_dict[curr_leaf].append(curr_pseudo_resid)
+
+
+        #now we calc the numerator
+        for k in range(0, len(unique_leaves)):
+            curr_leaf_index = unique_leaves[k]
+            print("the current leaf: " + str(curr_leaf_index))
+
+            curr_numerator = sum(leaf_output_dict[curr_leaf_index])
+            print("the numerator: " + str(curr_numerator))
 
             if self.first_tree:
-                curr_denominator = self.first_pred * (1 - self.first_pred)
-            else:
-                #use the probability from the new prob dict in further boosting rounds
-                #need to fix this to add up prev prob from previous rounds
-                curr_prob = self.new_prob_dict[curr_leaf_index]
-                curr_denominator = curr_prob * (1 - curr_prob)
+                #add up all the resids for the prev prob as denom. in the first tree, these are all the same
+                curr_denominator = (self.first_pred * (1 - self.first_pred))*len(leaf_output_dict[curr_leaf_index])
+                print("the denominator: " + str(curr_denominator))
 
             output = curr_numerator/curr_denominator
+            print("the output: " + str(output))
+            leaf_output_list.append((curr_leaf_index, output))
+            print()
 
-            leaf_output_list.append((curr_leaf_index, output[0]))
-        #print()
-        #print("the leaf output list: " + str(leaf_output_list))
+
         return leaf_output_list
+        #if we're on the second tree, then we have these values already updated? have to check
+
+
+
+
+
+
+
 
 
 
@@ -267,10 +301,6 @@ class Grad_Boosting:
 
         correct_preds = 0
         print("x test numpy shape: " + str(x_test_numpy[0].shape))
-        #print(x_test_numpy[0])
-        #print("x test numpy shape: " + str(x_test_numpy[0].shape))
-
-
 
         y_test_pred = tree_model.predict(x_test_numpy)
 
@@ -286,6 +316,9 @@ class Grad_Boosting:
 
         curr_acc = (correct_preds/total_preds)*100
         print("the current accuracy of this tree on test set: " + str(curr_acc))
+
+        print("feature importances: " + str(tree_model.feature_importances_))
+
 
 
 
@@ -308,7 +341,7 @@ def create_split_and_learner(x, y):
     #decisiontreeregressor weak learner
     #change squared to 0-1 error
     #change number of leaves to between 8 and 32 later
-    tree_model = DecisionTreeRegressor(criterion='absolute_error', max_depth=3, max_leaf_nodes=8)
+    tree_model = DecisionTreeRegressor(criterion='absolute_error', max_depth=3, max_leaf_nodes=3)
     return x_train, x_test, y_train, y_test, tree_model
 
 
@@ -363,81 +396,20 @@ def main():
 
     x_train, x_test, y_train, y_test, tree_model = create_split_and_learner(x, y)
     boost_class = Grad_Boosting(one_count, zero_count)
-    tree_model, pred_list, loss_list = boost_class.GradBoostClassifier(tree_model, x_test, x_train, y_train, learning_rate=0.1)
+    tree_model, pred_list = boost_class.GradBoostClassifier(tree_model, x_test, x_train, y_train, learning_rate=0.5)
 
     #run on test set data now
-    boost_class.test_model(tree_model, x_test, y_test)
+    #boost_class.test_model(tree_model, x_test, y_test)
+    #print()
+    #print()
+
+    #test with actual GradBoostClassifier
+    #gbc = GradientBoostingClassifier()
+    #gbc_mod = gbc.fit(x_train, y_train)
+    #print(f"Baseline gradient boosting classifier: {round(gbc_mod.score(x_test, y_test), 3)}")
+
+    #pred_gbc = gbc_mod.predict(x_test)
+    #print("pred gbc: " + str(pred_gbc))
 
 
 main()
-
-
-##
-# Plot the training mean squared error vs. number of boosting rounds by looping through various
-# numbers of boosting rounds, calculating the training mean squared error each round and
-# appending it to a list.
-###
-
-
-
-
-"""# performs gradient boosting with a tqdm progress bar
-        if verbose:
-            from tqdm import tqdm
-            # iterates through the boosting round
-            for _ in tqdm(range(0, boosting_rounds)):
-                # fit the model to the pseudo residuals
-                model = model.fit(X_train, pseudo_resids)
-                # increment the predicted training y with the pseudo residual * learning rate
-                y_hat_train += learning_rate * model.predict(X_train)
-                # increment the predicted test y as well
-                y_hat_train_test += learning_rate * model.predict(X_test)
-                # calculate the pseudo resids for next round
-                pseudo_resids = y_train - y_hat_train
-        # performs gradient boosting without a progress bar
-        else:
-            # iterates through the boosting round
-            for _ in range(0, boosting_rounds):
-                # fit the model to the pseudo residuals
-                model = model.fit(X_train, pseudo_resids)
-                # increment the predicted training y with the pseudo residual * learning rate
-                y_hat_train += learning_rate * model.predict(X_train)
-                # increment the predicted test y as well
-                y_hat_train_test += learning_rate * model.predict(X_test)
-                # calculate the pseudo resids for next round
-                pseudo_resids = y_train - y_hat_train
-
-        # return a tuple of the predicted training y and the predicted test y
-        return y_hat_train, y_hat_train_test"""
-
-"""#tqdm is progress bar
-tree_mse_train = []
-#change to 101 later
-n_rounds = np.arange(5, 10, 5)
-
-for n_round in tqdm(n_rounds):
-    print("round: " + str(n_round))
-    print()
-    y_hat_train = GradBoost(tree_model,
-                            X_test,
-                            X_train,
-                            y_train,
-                            boosting_rounds=n_round,
-                            learning_rate=0.1,
-                            verbose=False)[0]
-
-    tree_mse_train.append(np.mean((y_train - y_hat_train) ** 2))
-
-print(tree_mse_train)
-
-
-
-# sets the plot size to 20x8
-plt.rcParams['figure.figsize'] = (20,8)
-
-plt.subplot(1, 2, 1)
-plt.plot(n_rounds, tree_mse_train)
-plt.title('Training MSE vs. Boosting Rounds for Tree Model', fontsize=20)
-plt.xlabel('Number of Boosting Rounds', fontsize=15)
-plt.ylabel('Training Mean Squared Error', fontsize=15)
-plt.show();"""
