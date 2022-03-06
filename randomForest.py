@@ -29,26 +29,28 @@ class RandomForest(RandomDecisionTree):
             votes.append(tree.classifyInstance(data_point, tree.tree))
         return max(set(votes), key = votes.count)
     
-    def getAccuracy(self, data, labels):
+    def getAccuracy(self, dataframe):
         """
         get the accuracy of the random forest, as a percentage of correctly
         classified data
         @data: testing data points
         @labels: labels of testing data points
         """
+        data, labels = processDataFrame(dataframe)[2:]
         accuracy = 0
         for idx, data_point in enumerate(data):
             if self.classifyInstance(data_point) == labels[idx]:
                 accuracy += 1
         return accuracy / len(data)
     
-    def testOutOfBag(self, data, labels):
+    def testOutOfBag(self, dataframe):
         """
         test how many of the out of bag data points
         are correctly classified
         @data: 2D matrix of unlabeled data points
         @labels: list of labels for data
         """
+        data, labels = processDataFrame(dataframe)[2:]
         correctly_classified = 0
         for idx in self.out_of_bag_idx:
             if self.classifyInstance(data[idx]) == labels[idx]:
@@ -91,9 +93,9 @@ if __name__ == "__main__":
     df = pd.read_csv("fetal_health.csv")
     np.random.seed(1)
     df.iloc[np.random.permutation(len(df))]
-    features, feature_labels, data, data_labels = processDataFrame(df)
+    data, data_labels = processDataFrame(df)[2:]
     forest = RandomForest(50, 3, 100)
     forest.makeForest(df)
     print("classifier:", forest.classifyInstance(data[1]), "real label:", data_labels[1])
-    print("out of bag accuracy:", forest.testOutOfBag(data, data_labels))
-    print("testing accuracy:", forest.getAccuracy(data, data_labels))
+    print("out of bag accuracy:", forest.testOutOfBag(df))
+    print("testing accuracy:", forest.getAccuracy(df))

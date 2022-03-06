@@ -54,7 +54,6 @@ class RandomDecisionTree:
         return accuracy/len(test_data)
 
 
-
 def decisionTreeTrain(data, data_labels, num_features, max_depth, parent_impurity=1):
     """ 
     train a decision tree on inputted data
