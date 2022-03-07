@@ -5,7 +5,7 @@ so that all models can be compared easily
 """
 
 class RandomForestHyperparamters:
-    def __init__(self, num_trees=70, num_features=3, max_depth=20):
+    def __init__(self, num_trees=138, num_features=13, max_depth=12):
         self.num_trees = num_trees
         self.num_features = num_features
         self.max_depth = max_depth
