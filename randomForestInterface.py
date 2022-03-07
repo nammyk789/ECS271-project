@@ -12,7 +12,9 @@ class RandomForestHyperparamters:
 
 
 class RandomForest(RandomForestBackbone):
-    def __init__(self, hyperparameters):
+    def __init__(self, hyperparameters = None):
+        if not hyperparameters:
+            hyperparameters = RandomForestHyperparamters()
         self.forest = RandomForestBackbone(hyperparameters.num_trees, 
                                             hyperparameters.num_random_features, 
                                             hyperparameters.max_depth)
