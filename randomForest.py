@@ -14,7 +14,7 @@ of the same size
 - hyperparameter tuning: changing the number of random features we use per branch. start with
 the square root of the number of variables
 """
-class RandomForest(RandomDecisionTree):
+class RandomForestBackbone(RandomDecisionTree):
     def __init__(self, num_trees, num_random_features, max_depth):
         self.num_trees = num_trees
         self.num_random_features = num_random_features
@@ -94,7 +94,7 @@ if __name__ == "__main__":
     np.random.seed(1)
     df.iloc[np.random.permutation(len(df))]
     data, data_labels = processDataFrame(df)[2:]
-    forest = RandomForest(50, 3, 100)
+    forest = RandomForestBackbone(50, 3, 100)
     forest.makeForest(df)
     print("classifier:", forest.classifyInstance(data[1]), "real label:", data_labels[1])
     print("out of bag accuracy:", forest.testOutOfBag(df))
