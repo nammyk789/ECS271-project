@@ -5,7 +5,7 @@ so that all models can be compared easily
 """
 
 class RandomForestHyperparamters:
-    def __init__(self, num_trees=138, num_features=13, max_depth=12):
+    def __init__(self, num_trees=143, num_features=9, max_depth=11):
         self.num_trees = num_trees
         self.num_features = num_features
         self.max_depth = max_depth
@@ -46,5 +46,5 @@ class RandomForest(RandomForestBackbone):
         """
         take np arrays of data and labels and make a pandas df
         """
-        all_data = np.insert(data_X, 21, data_y, axis=1)
+        all_data = np.insert(data_X, data_X.shape[1], data_y, axis=1)
         return pd.DataFrame(all_data, columns = [i for i in range(all_data.shape[1])])
