@@ -126,10 +126,9 @@ class NeuralNetwork(BaseModel):
             batch_size=hyperparam.batch_size)
 
     def predict(self, test_X: np.array) -> np.array:
-
-        outputs = self.model(torch.from_numpy(test_X))
-        _, predicted = torch.max(outputs.data, 1)
-        return predicted.numpy()
+        with torch.no_grad():
+            outputs = self.model(torch.from_numpy(test_X))
+            return torch.softmax(outputs, dim=1).numpy()
 
 
 def calculate_accuracy(dataloader: DataLoader, model: nn.Module):
