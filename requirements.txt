@@ -1,0 +1,7 @@
+numpy
+sklearn
+pytorch
+pandas
+optuna
+matplotlib
+tqdm
