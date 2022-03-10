@@ -84,9 +84,9 @@ optimizer_dict = {
 
 class NeuralNetworkHyperparam:
 
-    def __init__(self, batch_size: int = 4, lr: float = 0.0014589308571839224,
-                 weight_decay: float = 9.583002028793958e-05, loss_criterion: str = "nn.CrossEntropyLoss",
-                 num_layers: int = 7, activation: str = "nn.LeakyReLU", optimizer: str = "optim.SGD"):
+    def __init__(self, batch_size: int = 4, lr: float = 0.0003,
+                 weight_decay: float = 1e-05, loss_criterion: str = "nn.CrossEntropyLoss",
+                 num_layers: int = 7, activation: str = "nn.PReLU", optimizer: str = "optim.Adam"):
         """
         Initialize the neural network hyperparameters.
         The default parameters correspond to the results of the hyperparameter tuning.
