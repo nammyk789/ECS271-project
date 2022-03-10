@@ -1,5 +1,6 @@
 import time
-from randomforest.decisionTree import *
+import numpy as np
+from decisionTree import *
 
 """
 https://www.youtube.com/watch?v=J4Wdy0Wc_xQ
@@ -20,6 +21,17 @@ class RandomForestBackbone(RandomDecisionTree):
         self.num_random_features = num_random_features
         self.max_depth = max_depth
     
+    def getInstanceProbabilities(self, data_point):
+        """
+        get the probability that data point belongs to each class
+        """
+        probabilities = []
+        for tree in self.trees:
+            probabilities.append(tree.getProbabilities(data_point, tree.tree))
+        prob_array = np.array(probabilities)
+        return prob_array.mean(axis=0)
+        
+
     def classifyInstance(self, data_point):
         """
         classify data point
@@ -97,5 +109,6 @@ if __name__ == "__main__":
     forest = RandomForestBackbone(50, 3, 100)
     forest.makeForest(df)
     print("classifier:", forest.classifyInstance(data[1]), "real label:", data_labels[1])
+    print("probabilities:", forest.getInstanceProbabilities(data[1]))
     print("out of bag accuracy:", forest.testOutOfBag(df))
     print("testing accuracy:", forest.getAccuracy(df))
