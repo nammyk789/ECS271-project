@@ -36,7 +36,7 @@ class RandomForest(RandomForestBackbone):
         test_X = list(test_X)
         preds = []
         for data_point in test_X:
-            preds.append(self.forest.classifyInstance(data_point))
+            preds.append(self.forest.getInstanceProbabilities(data_point))
         return np.array(preds)
     
     def accuracy(self, test_X, test_y):
