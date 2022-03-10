@@ -222,29 +222,3 @@ def train(model: nn.Module,
     if verbose:
         print('Finished Training')
     return losses, train_accs, test_accs
-
-
-def plot(labels, loss_lists, train_acc_lists, test_acc_lists):
-    """
-    Helper function to plot training results
-    """
-    for i, loss_list in enumerate(loss_lists):
-        plt.plot(loss_list, label=f"{labels[i]}")
-    plt.title("Loss Curve")
-    leg = plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
-    leg.get_frame().set_alpha(0.5)
-    plt.show()
-
-    for i, train_acc_list in enumerate(train_acc_lists):
-        plt.plot(train_acc_list, label=f"{labels[i]}")
-    plt.title("Training Set Accuracies")
-    leg = plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
-    leg.get_frame().set_alpha(0.5)
-    plt.show()
-
-    for i, test_acc_list in enumerate(test_acc_lists):
-        plt.plot(test_acc_list, label=f"{labels[i]}")
-    plt.title("Test Set Accuracies")
-    leg = plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
-    leg.get_frame().set_alpha(0.5)
-    plt.show()
