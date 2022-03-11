@@ -16,9 +16,9 @@ import warnings
 class Grad_Boosting_Interface:
 
 
-    def __init__(self, one_count, zero_count, model, learning_rate, boosting_rounds):
-        self.one_count = one_count
-        self.zero_count = zero_count
+    def __init__(self, learning_rate, boosting_rounds, max_depth, leaves):
+        self.one_count = 0
+        self.zero_count = 0
         self.first_tree = True
         self.new_probs = []
         self.first_pred = 0
@@ -26,7 +26,8 @@ class Grad_Boosting_Interface:
         self.i = 0
         self.loss_list = []
         self.curr_pred = 0
-        self.model = model
+        self.model = DecisionTreeRegressor(criterion='absolute_error', max_depth=max_depth, max_leaf_nodes=leaves)
+
         self.learning_rate = learning_rate
         self.boosting_rounds = boosting_rounds
 
@@ -52,12 +53,12 @@ class Grad_Boosting_Interface:
 
 
         log_odds = math.log(self.one_count/self.zero_count)
-        print("log odds: " + str(log_odds))
+        #print("log odds: " + str(log_odds))
 
         log_regression = math.exp(log_odds)/(1 + math.exp(log_odds))
 
         self.first_pred = log_regression
-        print("prediction for first boosting round: " + str(self.first_pred))
+        #print("prediction for first boosting round: " + str(self.first_pred))
 
         self.new_pseudo_resids = [0]*len(train_y)
         count = 0
@@ -68,7 +69,6 @@ class Grad_Boosting_Interface:
 
 
         self.model = self.model.fit(train_X, self.new_pseudo_resids)
-        print(self.model)
         #tree.plot_tree(self.model)
         #plt.show()
 
@@ -89,8 +89,8 @@ class Grad_Boosting_Interface:
         #plotting the final tree
         #tree.plot_tree(self.model)
         #plt.show()
-        print("the loss list: " + str(self.loss_list))
-        print()
+        #print("the loss list: " + str(self.loss_list))
+        #print()
 
 
 
@@ -112,8 +112,8 @@ class Grad_Boosting_Interface:
         #repeat
         for i in range(0, self.boosting_rounds):
 
-            print()
-            print("boosting round: " + str(2 + i))
+            #print()
+            #print("boosting round: " + str(2 + i))
 
             self.model = self.model.fit(train_X, self.new_pseudo_resids)
             leaf_output_list = self.apply_residual_transformation(train_X)
@@ -121,18 +121,18 @@ class Grad_Boosting_Interface:
 
             correct_preds = 0
             for j in range(0, len(train_y)):
-                if self.new_probs[j] >= 0.5 and train_y[j] == 1:
+                if self.new_probs[j] > 0 and train_y[j] == 1:
                     correct_preds += 1
 
                 else:
-                    if self.new_probs[j] < 0.5 and train_y[j] == 0:
+                    if self.new_probs[j] <= 0 and train_y[j] == 0:
                         correct_preds += 1
 
                 self.new_pseudo_resids[j] = train_y[j] - self.new_probs[j]
 
             curr_acc = (correct_preds/total_preds)*100
-            print("the current training accuracy for epoch " + str(i) + ": " + str(curr_acc))
-            print()
+            #print("the current training accuracy for epoch " + str(i) + ": " + str(curr_acc))
+            #print()
             self.loss_list.append(sum(self.new_pseudo_resids))
 
 
@@ -231,7 +231,7 @@ class Grad_Boosting_Interface:
 
                 leaf_output_list.append((curr_leaf, output))
 
-        print("leaf output list: " + str(leaf_output_list))
+        #print("leaf output list: " + str(leaf_output_list))
 
         return leaf_output_list
 
@@ -257,7 +257,7 @@ class Grad_Boosting_Interface:
         log_odds_pred = 0
         actual_prob = 0
         count = 0
-        print()
+        #print()
         #the i value is correct
         for i in range(0, len(X_train_numpy)):
 
@@ -285,8 +285,8 @@ class Grad_Boosting_Interface:
                     #convert log odds back into probability
                     actual_prob = (math.exp(log_odds_pred)/(1 + math.exp(log_odds_pred)))
 
-                    if i == self.i:
-                        print("the new probability for leaf: " + str(curr_train_leaf[0]) + ": " + str(actual_prob))
+                    #if i == self.i:
+                        #print("the new probability for leaf: " + str(curr_train_leaf[0]) + ": " + str(actual_prob))
 
 
             #update the probabilities list if we're on the 2nd tree
@@ -327,9 +327,9 @@ class Grad_Boosting_Interface:
         @y_test_pred: List of shape (N, d,) containing the test predictions
         @test_y: Numpy array of shape (N, d,) consisting of the test features
 
-        Calculates accuracy on test set. Round up from 0.5 to verify prediction of 1, round down for 0
+        Calculates accuracy on test set. New threshold is 0 and below for neg. classes, and greater than 0 for positive.
         """
-        
+
         total_preds = len(test_y)
         correct_preds = 0
         curr_acc = 0
@@ -337,15 +337,22 @@ class Grad_Boosting_Interface:
 
         for i in range(0, len(y_test_pred)):
 
-            if y_test_pred[i] < 0.5 and test_y[i] == 0:
-                correct_preds += 1
+            if y_test_pred[i] <= 0:
+                y_test_pred[i] = 0
 
-            else:
-                if y_test_pred[i] >= 0.5 and test_y[i] == 1:
+                if test_y[i] == 0:
                     correct_preds += 1
 
+            else:
+                if y_test_pred[i] > 0:
+                    y_test_pred[i] = 1
+
+                    if test_y[i] == 1:
+                        correct_preds += 1
+
         curr_acc = (correct_preds/total_preds)*100
-        print("the current accuracy of this tree on test set: " + str(curr_acc))
+        print("the current accuracy of this tree (Gradient boosting) on test set: " + str(curr_acc))
 
         print("feature importances: " + str(self.model.feature_importances_))
+        print()
         return curr_acc
