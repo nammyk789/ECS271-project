@@ -1,7 +1,6 @@
-from data import *
+from data.data import get_data
 import optuna
-from grad_boosting_interface import *
-
+from models.gradient_boosting.grad_boosting_interface import *
 
 
 def convert_data(y):

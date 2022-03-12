@@ -1,6 +1,7 @@
 import time
 import numpy as np
-from randomforest.decisionTree import *
+import pandas as pd
+from decision_tree import *
 
 """
 https://www.youtube.com/watch?v=J4Wdy0Wc_xQ

@@ -1,16 +1,13 @@
-from queue import Full
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 import numpy as np
-import matplotlib.pyplot as plt
 from base_model import BaseModel
 
 """
 Define a fully connect neural network
 """
-
 
 def init_weights(m):
     if isinstance(m, nn.Linear):

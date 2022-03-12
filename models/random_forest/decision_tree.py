@@ -1,10 +1,6 @@
 from turtle import update
 import pandas as pd
 import numpy as np
-"""
-to-do: implement depth control, maybe implement some impurity threshhold parameter
-to prevent overfitting
-"""
 
 class Node:
     def __init__(self, feature, boundary, left, right):
@@ -215,14 +211,7 @@ def processDataFrame(data_frame):
 
 
 if __name__ == "__main__":
-    # test_column = [155, 180, 190, 220, 225]
-    # test_labels = [0, 1, 0, 1, 1]
-    # print("test column:", test_column)
-    # print("test labels:", test_labels)
-    # test_column, test_labels = sortData(test_column, test_labels)
-    # print("impurity:", giniImpurity(test_labels, 1))
-    # should be (0.27, 205)
-    # print("best boundary:", getBestBoundaryForFeature(test_column, test_labels))
+
     df = pd.read_csv("fetal_health.csv")
     np.random.seed(1)
     df.iloc[np.random.permutation(len(df))]
@@ -232,5 +221,3 @@ if __name__ == "__main__":
     myTree.makeTree([i[:idx] for i in features], feature_labels[:idx])
     print(myTree.classifyInstance(data[idx], myTree.tree), data_labels[idx])
     print(myTree.getProbabilities(data[idx], myTree.tree))
-    # print("training accuracy:", myTree.getAccuracy(data[:idx], data_labels[:idx]))
-    # print("testing accuracy:", myTree.getAccuracy(data[idx:2*idx], data_labels[idx:2*idx]))
