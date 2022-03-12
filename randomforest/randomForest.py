@@ -69,7 +69,7 @@ class RandomForestBackbone(RandomDecisionTree):
                 correctly_classified += 1
         return correctly_classified / len(self.out_of_bag_idx)
     
-    def makeForest(self, data_frame):
+    def makeForest(self, data_frame, verbose = False):
         """
         generate a random forest
         """
@@ -84,7 +84,8 @@ class RandomForestBackbone(RandomDecisionTree):
             self.trees.append(tree) 
             out_of_bag_idx.extend(out_of_bag)
         self.out_of_bag_idx = set(out_of_bag_idx)
-        print("Finished training! Time elapsed:", time.time() - start_time)
+        if verbose:
+            print("Finished training! Time elapsed:", time.time() - start_time)
     
 
 def generateBootstrappedData(data_frame):
