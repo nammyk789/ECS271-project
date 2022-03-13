@@ -4,7 +4,7 @@ import pandas as pd
 
 def get_data():
     np.random.seed(0)
-    df = np.array(pd.read_csv("fetal_health.csv"), dtype=np.float32)
+    df = np.array(pd.read_csv("../../data/fetal_health.csv"), dtype=np.float32)
     np.random.shuffle(df)
 
     X = np.array(df[:, :-1])

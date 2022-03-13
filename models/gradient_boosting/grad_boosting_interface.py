@@ -1,6 +1,6 @@
 import numpy as np
 import math
-from grad_booster import *
+from models.gradient_boosting.grad_booster import *
 
 
 class Grad_Boosting_Interface:

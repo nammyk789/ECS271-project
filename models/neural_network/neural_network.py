@@ -1,13 +1,17 @@
+import sys
+sys.path.append('../')
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 import numpy as np
-from base_model import BaseModel
+from models.base_model import BaseModel
 
 """
 Define a fully connect neural network
 """
+
 
 def init_weights(m):
     if isinstance(m, nn.Linear):

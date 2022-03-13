@@ -1,4 +1,4 @@
-from random_forest import *
+from models.random_forest.random_forest import *
 import pandas as pd
 """
 this class creates an interface compatible with other models we have written,

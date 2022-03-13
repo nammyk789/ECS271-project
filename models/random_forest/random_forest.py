@@ -1,7 +1,7 @@
 import time
 import numpy as np
 import pandas as pd
-from decision_tree import *
+from models.random_forest.decision_tree import *
 
 """
 https://www.youtube.com/watch?v=J4Wdy0Wc_xQ
