@@ -1,3 +1,6 @@
+import sys
+sys.path.append('../../')
+
 from data.data import get_data
 import optuna
 from models.gradient_boosting.grad_boosting_interface import *
